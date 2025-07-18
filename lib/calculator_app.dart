@@ -1,7 +1,6 @@
 import 'package:calculator_app/models/calculation_history.dart';
 import 'package:calculator_app/models/calculator_button.dart';
 import 'package:calculator_app/models/calculator_state.dart';
-import 'package:calculator_app/scientific_calculator.dart';
 import 'package:calculator_app/services/calculator_logic.dart';
 import 'package:calculator_app/services/scientific_calculator_logic.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +17,10 @@ class _CalculatorAppState extends State<CalculatorApp> {
   CalculatorState _state = CalculatorState();
 
   bool _showHistory = false;
+  bool _scientificMode = false;
+  late FocusNode _focusNode;
 
+  // basic Calculator buttons
   final List<List<CalculatorButton>> _buttonLayout = [
     [
       CalculatorButton(
@@ -76,6 +78,53 @@ class _CalculatorAppState extends State<CalculatorApp> {
     ],
   ];
 
+  // Scientific calculator buttons
+  final List<List<CalculatorButton>> _scientificButtonLayout = [
+    [
+      CalculatorButton(text: "MC", value: "MC", type: ButtonType.memory),
+      CalculatorButton(text: "MR", value: "MR", type: ButtonType.memory),
+      CalculatorButton(text: "M+", value: "M+", type: ButtonType.memory),
+      CalculatorButton(text: "M-", value: "M-", type: ButtonType.memory),
+    ],
+    [
+      CalculatorButton(text: "sin", value: "sin", type: ButtonType.scientific),
+      CalculatorButton(text: "cos", value: "cos", type: ButtonType.scientific),
+      CalculatorButton(text: "tan", value: "tan", type: ButtonType.scientific),
+      CalculatorButton(text: "ln", value: "ln", type: ButtonType.scientific),
+    ],
+    [
+      CalculatorButton(text: "x²", value: "x²", type: ButtonType.scientific),
+      CalculatorButton(text: "x³", value: "x³", type: ButtonType.scientific),
+      CalculatorButton(text: "xʸ", value: "xʸ", type: ButtonType.scientific),
+      CalculatorButton(text: "√x", value: "√x", type: ButtonType.scientific),
+    ],
+    [
+      CalculatorButton(text: "∛x", value: "∛x", type: ButtonType.scientific),
+      CalculatorButton(text: "1/x", value: "1/x", type: ButtonType.scientific),
+      CalculatorButton(text: "X!", value: "X!", type: ButtonType.scientific),
+      CalculatorButton(
+          text: "log₁₀", value: "log₁₀", type: ButtonType.scientific),
+    ],
+    [
+      CalculatorButton(text: "e", value: "e", type: ButtonType.scientific),
+      CalculatorButton(text: "π", value: "π", type: ButtonType.scientific),
+      CalculatorButton(text: "eˣ", value: "eˣ", type: ButtonType.scientific),
+      CalculatorButton(text: "10ˣ", value: "10ˣ", type: ButtonType.scientific),
+    ],
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,12 +134,15 @@ class _CalculatorAppState extends State<CalculatorApp> {
         children: [
           _buildDisplay(),
 
+          // Mode toggle
+
+          _buildModeToggle(),
+
           // History toggle
           _buildHistoryToggle(),
 
           // Scientific Calculator
-          ScientificCalculator(state: _state),
-
+          if (_scientificMode) _buildScientificButtons(),
           // Calculator buttons or history
 
           Expanded(
@@ -164,6 +216,33 @@ class _CalculatorAppState extends State<CalculatorApp> {
     return 24;
   }
 
+  Widget _buildModeToggle() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            _scientificMode ? "Scientific Mode" : "Basic Mode",
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 16,
+            ),
+          ),
+          Switch(
+            value: _scientificMode,
+            onChanged: (value) {
+              setState(() {
+                _scientificMode = value;
+              });
+            },
+            activeColor: Colors.orange,
+          )
+        ],
+      ),
+    );
+  }
+
   Widget _buildHistoryToggle() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -186,6 +265,28 @@ class _CalculatorAppState extends State<CalculatorApp> {
             ),
           )
         ],
+      ),
+    );
+  }
+
+  Widget _buildScientificButtons() {
+    if (!_scientificMode) return SizedBox.shrink();
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: _scientificButtonLayout.map((row) {
+          return SizedBox(
+            height: 60,
+            child: Row(
+              children: row.map((button) {
+                return Expanded(
+                  child: _buildCalculatorButton(button),
+                );
+              }).toList(),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -350,17 +451,41 @@ class _CalculatorAppState extends State<CalculatorApp> {
     HapticFeedback.lightImpact();
 
     setState(() {
-      _state = CalculatorLogic.processInput(_state, value);
+      if (_isScientificFuction(value)) {
+        _state =
+            ScientificCalculatorLogic.handleAdvancedOperation(_state, value);
+      } else {
+        _state = CalculatorLogic.processInput(_state, value);
+      }
     });
   }
 
-  void _handleScientificButtonPress(String value) {
-    HapticFeedback.lightImpact();
+  bool _isScientificFuction(String value) {
+    const scientificFunctions = [
+      'sin',
+      'cos',
+      'tan',
+      'ln',
+      'log₁₀',
+      'x²',
+      'x³',
+      'xʸ',
+      'eˣ',
+      '10ˣ',
+      '√x',
+      '∛x',
+      'ⁿ√x',
+      '1/x',
+      'X!',
+      'e',
+      'π',
+      'MC',
+      'MR',
+      'M+',
+      'M-'
+    ];
 
-    setState(() {
-      _state =
-          ScientificCalculatorLogic.handleScientificFunction(_state, value);
-    });
+    return scientificFunctions.contains(value);
   }
 
   void _clearHistory() {
