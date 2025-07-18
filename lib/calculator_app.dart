@@ -142,7 +142,7 @@ class _CalculatorAppState extends State<CalculatorApp> {
           _buildHistoryToggle(),
 
           // Scientific Calculator
-          if (_scientificMode) _buildScientificButtons(),
+          if (_scientificMode && !_showHistory) _buildScientificButtons(),
           // Calculator buttons or history
 
           Expanded(
@@ -277,7 +277,7 @@ class _CalculatorAppState extends State<CalculatorApp> {
       child: Column(
         children: _scientificButtonLayout.map((row) {
           return SizedBox(
-            height: 60,
+            height: 45,
             child: Row(
               children: row.map((button) {
                 return Expanded(
@@ -336,7 +336,7 @@ class _CalculatorAppState extends State<CalculatorApp> {
                   color: isPressed
                       ? Colors.orange
                       : button.textColor ?? _getDefaultTextColor(button.type),
-                  fontSize: 24,
+                  fontSize: _scientificMode ? 20 : 24,
                   fontWeight: FontWeight.w400,
                 ),
               ),
@@ -453,7 +453,7 @@ class _CalculatorAppState extends State<CalculatorApp> {
     setState(() {
       if (_isScientificFuction(value)) {
         _state =
-            ScientificCalculatorLogic.handleAdvancedOperation(_state, value);
+            ScientificCalculatorLogic.handleScientificFunction(_state, value);
       } else {
         _state = CalculatorLogic.processInput(_state, value);
       }
